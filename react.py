@@ -2,6 +2,7 @@ import tkinter as tk
 from datetime import datetime, timedelta
 import cv2
 from PIL import Image, ImageTk
+import keyboard  # Импортируем библиотеку keyboard
 
 class ReactionTest:
     def __init__(self, master):
@@ -59,9 +60,13 @@ class ReactionTest:
         # Включаем зеленый цвет
         self.result_label.config(text="Нажмите левую или правую кнопку мыши", fg="green")
 
-        # Добавляем обработчик событий на окно
-        self.master.bind("<Button-1>", self.handle_left_click)
-        self.master.bind("<Button-3>", self.handle_right_click)
+        # Добавляем обработчики событий на окно
+        self.master.bind("<Button-1>", self.handle_left_click)  # ЛКМ
+        self.master.bind("<Button-3>", self.handle_right_click)  # ПКМ
+
+        # Также добавляем обработчики для клавиш A и D
+        keyboard.on_press_key('a', self.handle_left_click_key)
+        keyboard.on_press_key('d', self.handle_right_click_key)
 
     def handle_left_click(self, event):
         if self.is_running and not self.left_clicked:
@@ -83,15 +88,38 @@ class ReactionTest:
             if self.left_clicked:
                 self.display_results()
 
+    def handle_left_click_key(self, event):
+        # Эмулируем нажатие левой кнопки мыши
+        if self.is_running and not self.left_clicked:
+            self.left_click_time = datetime.now()
+            self.left_clicked = True
+            self.update_result()
+
+            # Если правая кнопка уже была нажата, выводим результаты
+            if self.right_clicked:
+                self.display_results()
+
+    def handle_right_click_key(self, event):
+        # Эмулируем нажатие правой кнопки мыши
+        if self.is_running and not self.right_clicked:
+            self.right_click_time = datetime.now()
+            self.right_clicked = True
+            self.update_result()
+
+            # Если левая кнопка уже была нажата, выводим результаты
+            if self.left_clicked:
+                self.display_results()
+
     def update_result(self):
         current_time = datetime.now()
         result_text = f"Время нажатия: {self.format_time(current_time - self.start_time)}"
         self.result_label.config(text=result_text, fg="black")
 
     def display_results(self):
-        # Удаляем обработчик событий
+        # Удаляем обработчики событий
         self.master.unbind("<Button-1>")
         self.master.unbind("<Button-3>")
+        keyboard.unhook_all()  # Удаляем обработчики клавиш
         self.is_running = False
 
         # Останавливаем воспроизведение видео

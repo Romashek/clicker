@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка реакции водителя</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        #result {
+            font-size: 24px;
+            margin-top: 20px;
+        }
+        #video {
+            display: none;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Проверка реакции водителя</h1>
+    <label for="delay">Задержка (мин:сек:мс):</label>
+    <input type="text" id="delay" value="0:3:0">
+    <br><br>
+    <label for="videoFile">Выберите видео:</label>
+    <input type="file" id="videoFile" accept="video/mp4">
+    <button id="startButton">Начать</button>
+
+    <div id="result"></div>
+    <video id="video" width="640" height="360" controls>
+        Ваш браузер не поддерживает видео.
+    </video>
+
+    <script>
+        let startTime;
+        let leftClickTime;
+        let rightClickTime;
+        let isRunning = false;
+        let leftClicked = false;
+        let rightClicked = false;
+
+        document.getElementById('startButton').addEventListener('click', startTest);
+
+        function startTest() {
+            if (!isRunning) {
+                const delayInput = document.getElementById('delay').value.split(':');
+                const minutes = parseInt(delayInput[0]);
+                const seconds = parseInt(delayInput[1]);
+                const milliseconds = parseInt(delayInput[2]);
+                const delay = (minutes * 60 + seconds) * 1000 + milliseconds;
+
+                document.getElementById('result').innerText = `Ждите ${minutes}:${seconds}:${milliseconds}`;
+                setTimeout(startReaction, delay);
+                isRunning = true;
+
+                // Start video playback
+                const videoFileInput = document.getElementById('videoFile');
+                const video = document.getElementById('video');
+                
+                if (videoFileInput.files.length > 0) {
+                    const file = videoFileInput.files[0];
+                    const fileURL = URL.createObjectURL(file);
+                    video.src = fileURL;
+                    video.style.display = 'block';
+                    video.play();
+                } else {
+                    alert("Пожалуйста, выберите видео файл.");
+                    isRunning = false; // Reset isRunning if no video is selected
+                }
+            }
+        }
+
+        function startReaction() {
+            startTime = new Date();
+            document.getElementById('result').innerText = "Нажмите левую или правую кнопку мыши";
+            document.addEventListener('mousedown', handleMouseDown);
+        }
+
+        function handleMouseDown(event) {
+            if (!isRunning) return;
+
+            if (event.button === 0 && !leftClicked) { // Left mouse button
+                leftClickTime = new Date();
+                leftClicked = true;
+                updateResult();
+            } else if (event.button === 2 && !rightClicked) { // Right mouse button
+                rightClickTime = new Date();
+                rightClicked = true;
+                updateResult();
+            }
+
+            if (leftClicked && rightClicked) {
+                displayResults();
+            }
+        }
+
+        function updateResult() {
+            const currentTime = new Date();
+            const reactionTime = formatTime(currentTime - startTime);
+            document.getElementById('result').innerText = `Время нажатия: ${reactionTime}`;
+        }
+
+        function displayResults() {
+            document.removeEventListener('mousedown', handleMouseDown);
+            isRunning = false;
+
+            const resultText = [];
+            if (leftClicked && rightClicked) {
+                if (leftClickTime < rightClickTime) {
+                    resultText.push(`Время нажатия левой кнопки: ${formatTime(leftClickTime - startTime)}`);
+                    resultText.push(`Время нажатия правой кнопки: ${formatTime(rightClickTime - startTime)}`);
+                } else {
+                    resultText.push(`Время нажатия правой кнопки: ${formatTime(rightClickTime - startTime)}`);
+                    resultText.push(`Время нажатия левой кнопки: ${formatTime(leftClickTime - startTime)}`);
+                }
+            } else if (leftClicked) {
+                resultText.push(`Время нажатия левой кнопки: ${formatTime(leftClickTime - startTime)}`);
+            } else if (rightClicked) {
+                resultText.push(`Время нажатия правой кнопки: ${formatTime(rightClickTime - startTime)}`);
+            }
+            document.getElementById('result').innerText = resultText.join('\n');
+        }
+
+        function formatTime(milliseconds) {
+            const totalSeconds = Math.floor(milliseconds / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            const ms = milliseconds % 1000;
+            return `${minutes}:${seconds.toString().padStart(2, '0')}:${ms.toString().padStart(3, '0')}`;
+        }
+    </script>
+
+</body>
+</html>
